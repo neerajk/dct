@@ -1,0 +1,36 @@
+# ML environment for the US benchmark (Clay v1.5 via TerraTorch). Separate from environment.yml
+# (data fetching) so the heavy torch stack stays optional.
+#   micromamba create -f environment-ml.yml && micromamba activate dct-ml
+# The Clay v1.5 factory fix needs TerraTorch >= 1.2.12 (1.2.6 hard-codes zero waves/gsd).
+# On this Mac set KMP_DUPLICATE_LIB_OK=TRUE before running torch code (OpenMP clash).
+name: dct-ml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - pyarrow
+  - openpyxl
+  - pyyaml
+  - pydantic>=2
+  - requests
+  - pillow
+  - shapely>=2
+  - pyproj
+  - geopandas
+  - pyogrio
+  - rasterio
+  - pystac-client
+  - planetary-computer
+  - earthaccess
+  - scikit-learn
+  - lightgbm
+  - streamlit
+  - matplotlib
+  - tqdm
+  - pip
+  - pip:
+      - terratorch>=1.2.12   # brings torch, lightning, timm, einops (check python-box below)
+      - python-box
+      - einops

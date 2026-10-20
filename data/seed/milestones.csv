@@ -1,0 +1,29 @@
+milestone_id,phase_id,type,date,date_precision,is_revised,supersedes_id,source_id,note
+M001,IN_VZG_01_P1,announcement,2025-10-14,month,,,S03,Google + AdaniConneX + Airtel hub announced (IndBiz report dated 2025-10-15)
+M002,IN_VZG_01_P1,other,2026-03-01,month,,,S02,Raiden proposal: construction start ideally March 2026
+M003,IN_VZG_01_P1,groundbreaking,2026-04-28,day,,,S01,Foundation stone laid by AP Chief Minister
+M004,IN_VZG_01_P1,go_live,2028-07-01,month,,,S02,Raiden proposal: operations from July 2028
+M005,IN_VZG_02_P1,announcement,2025-10-14,month,,,S03,Part of the hub announcement
+M006,IN_VZG_03_P2,land_allotment,2026-07-01,month,,,S08,Extra 25 acres (12.40 allotted now)
+M007,IN_VZG_04_P1,announcement,2023-01-01,year,,,S10,Adani announces Madhurawada and Kapuluppada data centres
+M008,IN_VZG_04_P1,go_live,2026-01-01,quarter,,,S11,GlobalData completion target Q1 2026
+M009,IN_VZG_05_P1,announcement,2025-10-01,month,,,S09,TCS 1000 MW Andhra Pradesh plan
+M010,IN_HYD_01_P1,groundbreaking,2026-07-01,month,,,S20,AWS breaks ground at Bharat Future City
+M011,IN_HYD_01_P1,go_live,2028-07-01,year,,,S20,First phase due within about two years of groundbreaking
+M012,IN_HYD_02_P1,land_allotment,2022-01-01,year,,,S21,Microsoft buys Mekaguda plot (22 acres)
+M013,IN_HYD_02_P2,other,2026-01-01,year,,,S22,Baxtel: Building 2 planned year 2026
+M014,IN_HYD_03_P1,go_live,2022-01-01,year,,,S23,Campus launched 2022 (Baxtel)
+M015,NL_MDM_01_AMS05,go_live,2015-01-01,year,,,S19,OSM start_date
+M016,NL_MDM_01_AMS06,go_live,2016-01-01,year,,,S19,OSM start_date
+M017,NL_MDM_01_AMS07,go_live,2018-01-01,year,,,S19,OSM start_date
+M018,NL_MDM_01_AMS08,go_live,2020-01-01,year,,,S19,OSM start_date
+M019,NL_MDM_01_AMS09,go_live,2020-01-01,year,,,S19,OSM start_date
+M020,NL_MDM_01_AMS11,go_live,2021-01-01,year,,,S19,OSM start_date
+M021,NL_MDM_01_AMS12,go_live,2021-01-01,year,,,S19,OSM start_date
+M022,NL_EMS_01_P1,go_live,2017-01-01,year,,,S19,OSM start_date on several halls
+M023,NL_AMS_01_P1,permit,2026-07-01,month,,,S25,Construction permit granted (reported 2026-07-07)
+M024,NL_AMS_01_P2,other,2036-01-01,year,,,S25,TenneT substations expected ~2036; Liander grid used until then
+M025,DE_HES_01_P1,go_live,2023-01-01,year,,,S26,Phase 1 live 2023 (Baxtel)
+M026,DE_HES_02_P1,land_allotment,2023-01-01,year,,,S27,Site bought from P3
+M027,DE_HES_02_P1,other,2026-01-01,year,,,S27,Baxtel: first building year 2026
+M028,DE_HES_03_P1,go_live,2027-01-01,year,,,S28,Due to go live 2027

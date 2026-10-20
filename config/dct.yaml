@@ -1,0 +1,158 @@
+# DCT (DataCenter Tracking) - single config. Every tunable lives here.
+# USER INPUT markers = values you may want to change.
+
+paths:
+  seed_dir: "data/seed"
+  raw_dir: "data/raw"
+  out_dir: "outputs"
+
+# --- study clusters (bbox = west, south, east, north, EPSG:4326) -------------
+# Used for the OSM footprint query and as a sanity box for campus lat/lon.
+clusters:
+  vizag:        {country: IN, bbox: [82.70, 17.35, 83.50, 18.00]}
+  navi_mumbai:  {country: IN, bbox: [72.90, 18.85, 73.25, 19.25]}
+  hyderabad:    {country: IN, bbox: [78.00, 17.00, 78.70, 17.70]}
+  nl_middenmeer: {country: NL, bbox: [4.80, 52.60, 5.20, 53.00]}
+  nl_eemshaven:  {country: NL, bbox: [6.75, 53.38, 6.95, 53.48]}
+  nl_amsterdam:  {country: NL, bbox: [4.75, 52.25, 5.05, 52.45]}
+  hessen:       {country: DE, bbox: [8.40, 49.90, 9.10, 50.30]}
+
+# --- controlled vocabularies --------------------------------------------------
+enums:
+  country: [IN, NL, DE, US]
+  status: [announced, approved, under_construction, operational, stalled, cancelled]
+  location_precision: [exact, parcel, locality, city]
+  location_method: [footprint, osm, parivesh, press, geocode, user_verified, other]
+  milestone_type: [announcement, mou, land_allotment, clearance, permit, groundbreaking, go_live, other]
+  date_precision: [day, month, quarter, year]
+  source_tier: ["1", "2", "3", "4"]
+  # 1 = operator/government/regulator/filing, 2 = planning portal/registry/major press,
+  # 3 = trade press, 4 = aggregator (Baxtel, Datacentres.com ...) - leads only.
+  entity_type: [campus, phase, milestone]
+
+# --- stage taxonomy (coarse works for every sensor, FAS-8 only where <=50 cm) --
+stages:
+  coarse:
+    0: greenfield
+    1: cleared_earthworks
+    2: structure_rising
+    3: enclosed
+    4: operational
+  fas8:
+    1: clearing
+    2: foundation
+    3: steel
+    4: roof
+    5: cladding
+    6: cooling_substation
+    7: commissioning
+    8: live
+  moody5: [built, powered, tested, tenants_moving_in, stable]
+
+# --- sensors per country --------------------------------------------------------
+# view_only = may be looked at / shown to people, never downloaded or used as model input.
+sensors:
+  default_sar: sentinel1
+  IN:
+    optical: [sentinel2, liss4_later]
+    view_only: [esri_world_imagery_z17_18]
+  NL:
+    optical: [pdok_aerial_yearly, sentinel2]
+    view_only: [esri_world_imagery_z17_18]
+  DE:
+    optical: [hessen_dop20_current, sentinel2]
+    view_only: [esri_world_imagery_z17_18]
+  US:
+    optical: [sentinel2]
+    sar: [opera_rtc_s1, hyp3_burst_coherence]
+    thermal: [landsat_lst]
+    labels_only: [naip, epoch_ai]    # never model inputs: India has no NAIP equivalent
+    view_only: [esri_world_imagery_z17_18]
+
+# --- AOI / time rules -------------------------------------------------------------
+aoi:
+  point_buffer_m: 1000        # half-width of the chip around a campus point (USER INPUT)
+  footprint_buffer_m: 250     # extra margin around a traced footprint
+  aerial_buffer_m: 500        # smaller for aerial photos (many tiles)
+time:
+  start_floor: "2017-01-01"   # Sentinel-2 L2A global archive is reliable from here
+  months_before_first_milestone: 12
+
+# --- Sentinel-2 (Earth Search STAC, no auth) ------------------------------------------
+sentinel2:
+  stac_endpoint: "https://earth-search.aws.element84.com/v1"
+  collection: "sentinel-2-l2a"
+  max_scene_cloud: 80          # coarse STAC pre-filter; the real test is SCL inside the AOI
+  candidates_per_month: 3      # scenes whose SCL is read per month
+  assets: [blue, green, red, nir, swir16, swir22, scl, visual]
+  scl_bad_classes: [0, 1, 3, 8, 9, 10]   # nodata, saturated, cloud shadow, cloud med/high, cirrus
+  max_bad_fraction: 0.30       # months above this are recorded as gaps
+  # Processing baseline >= 04.00 (Jan 2022) adds +1000 DN offset in the ORIGINAL ESA products. We do NOT alter pixels.
+  # A code review (2026-10-20, live Earth Search pixels) found that Earth Search items are already offset-free whether
+  # earthsearch:boa_offset_applied is true or false, so no correction is needed; meta.json still records the flag.
+
+# --- Landsat C2 L2 surface temperature (Planetary Computer, anonymous signing) -----------
+landsat:
+  stac_endpoint: "https://planetarycomputer.microsoft.com/api/stac/v1"
+  collection: "landsat-c2-l2"
+  platforms: ["landsat-8", "landsat-9"]
+  max_scene_cloud: 60
+  asset: "lwir11"
+  default_scale: 0.00341802    # USGS Collection 2 ST: K = DN*scale + offset
+  default_offset: 149.0
+
+# --- Sentinel-1 via ASF HyP3 (Earthdata login in ~/.netrc) ------------------------------
+hyp3:
+  rtc_resolution_m: 20
+  insar_looks: "20x4"          # 80 m pixels, cheapest burst InSAR option
+  max_pair_gap_days: 13        # 12-day repeat (+1 tolerance)
+  credits:
+    rtc_20m: 15                # per job, from HyP3 credit table (re-check before big runs)
+    burst_insar_80m: 1         # per job for 1-4 bursts
+  jobs_file: "data/raw/hyp3/jobs.json"
+  retention_days: 14           # HyP3 deletes outputs after this
+
+# --- aerial photos ----------------------------------------------------------------------
+aerial_nl:
+  tile_url: "https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/{layer}/EPSG:28992/{level}/{col}/{row}.jpeg"
+  # TileMatrixSet EPSG:28992 constants, confirmed live in potapulse (GetCapabilities)
+  topleft_x: -285401.92
+  topleft_y: 903401.92
+  scale_denominator_level0: 12288000.0
+  tile_px: 256
+  zoom_level: 14               # ~0.21 m/px; 15 = ~0.105 m/px (4x the tiles)
+  max_tiles_per_crop: 2500
+  max_parallel_fetches: 16
+  # layer names verified live from GetCapabilities 2026-10-19
+  layers:
+    2016: 2016_ortho25
+    2017: 2017_ortho25
+    2018: 2018_ortho25
+    2019: 2019_ortho25
+    2020: 2020_ortho25
+    2021: 2021_orthoHR
+    2022: 2022_orthoHR
+    2023: 2023_orthoHR
+    2024: 2024_orthoHR
+    2025: 2025_orthoHR
+    2026: 2026_orthoHR
+aerial_hessen:
+  # DOP20 (20 cm), licence dl-zero-de/2.0. Current edition only in this service.
+  wms_url: "https://www.gds-srv.hessen.de/cgi-bin/lika-services/ogc-free-images.ows"
+  layer: "he_dop20_rgb"
+  crs: "EPSG:25832"
+  resolution_m: 0.2
+  max_request_px: 2000
+
+# --- OSM footprints (Overpass) -------------------------------------------------------------
+osm:
+  endpoints:
+    - "https://overpass-api.de/api/interpreter"
+    - "https://overpass.kumi.systems/api/interpreter"
+  user_agent: "dct-research/0.1"     # Overpass returns 406 without a User-Agent
+  timeout_s: 120
+
+# --- view-only layers (never fetched; see docs/view_layers.md) -----------------------------------
+view_only:
+  esri_world_imagery_xyz: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+  attribution: "Powered by Esri - Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"

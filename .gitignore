@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+.ipynb_checkpoints/
+.env
+.streamlit/
+
+# big or re-downloadable
+# models/: Clay checkpoint (scripts/get_weights.py fetches it)
+models/
+# data/raw/: NAIP chips, Epoch zip, geocode cache
+data/raw/
+outputs/
+*.ckpt
+*.npz
+*.tif
+*.part
+
+# bulk per-campus pipeline outputs (re-runnable; copy between machines with robocopy/rsync, not git)
+data/processed/us/s2/
+data/processed/us/s2_emb/
+data/processed/us/naip_emb/
+data/processed/us/opera/
+# small and valuable, TRACKED: manual_labels.csv, anchors_*.csv, monthly_labels.csv, naip_predictions.csv, label_queue.csv

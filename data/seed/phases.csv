@@ -1,0 +1,33 @@
+phase_id,campus_id,name,it_mw,status,notes
+IN_VZG_01_P1,IN_VZG_01,Hub phase 1 (Tarluvada),,under_construction,Hub-level 1 GW IT; split per plot not published
+IN_VZG_02_P1,IN_VZG_02,Adavivaram plot,,announced,
+IN_VZG_03_P1,IN_VZG_03,Phase 1,,approved,
+IN_VZG_03_P2,IN_VZG_03,Phase 2 (extra 25 acres),,announced,12.40 acres allotted; 12.60 acres awaiting court settlement
+IN_VZG_04_P1,IN_VZG_04,Madhurawada campus (5 phases planned),,approved,Per-phase split unknown
+IN_VZG_05_P1,IN_VZG_05,Initial capacity (OpenAI reported),100,approved,
+IN_NMB_01_P1,IN_NMB_01,NM1 commissioned capacity,95,operational,As of Q2 2026
+IN_NMB_01_P2,IN_NMB_01,NM1 remaining planned capacity,,announced,250 MW planned minus 95 MW live
+IN_NMB_02_P1,IN_NMB_02,DC4-DC5 (existing),,operational,
+IN_NMB_02_P2,IN_NMB_02,DC10-DC13 expansion,,under_construction,
+IN_NMB_03_P1,IN_NMB_03,NAV1A,,operational,
+IN_NMB_04_P1,IN_NMB_04,Mahape campus (3 data centres),,operational,
+IN_HYD_01_P1,IN_HYD_01,Phase 1,,under_construction,Remaining phases over ~10 years
+IN_HYD_02_P1,IN_HYD_02,HYD01 Building 1,,under_construction,5 floors (Baxtel)
+IN_HYD_02_P2,IN_HYD_02,HYD01 Building 2,,announced,Planned year 2026 (Baxtel)
+IN_HYD_03_P1,IN_HYD_03,Chandanvelly campus,,operational,
+NL_MDM_01_AMS05,NL_MDM_01,AMS05,,operational,
+NL_MDM_01_AMS06,NL_MDM_01,AMS06,,operational,
+NL_MDM_01_AMS07,NL_MDM_01,AMS07,,operational,
+NL_MDM_01_AMS08,NL_MDM_01,AMS08,,operational,
+NL_MDM_01_AMS09,NL_MDM_01,AMS09,,operational,
+NL_MDM_01_AMS11,NL_MDM_01,AMS11,,operational,
+NL_MDM_01_AMS12,NL_MDM_01,AMS12,,operational,
+NL_EMS_01_P1,NL_EMS_01,Halls tagged 2017,,operational,
+NL_EMS_02_P1,NL_EMS_02,New build,,under_construction,
+NL_AMS_01_P1,NL_AMS_01,Tower 1 of 4,,approved,
+NL_AMS_01_P2,NL_AMS_01,Towers 2-4,,announced,Waits for grid upgrade
+DE_HES_01_P1,DE_HES_01,Phase 1,,operational,
+DE_HES_01_P2,DE_HES_01,Later phases,,under_construction,
+DE_HES_02_P1,DE_HES_02,First module(s),,under_construction,
+DE_HES_03_P1,DE_HES_03,FRA04,,under_construction,
+DE_HES_04_P1,DE_HES_04,FRA5 (two buildings),,under_construction,

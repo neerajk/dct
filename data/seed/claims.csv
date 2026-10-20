@@ -1,0 +1,27 @@
+claim_id,entity_type,entity_id,field,value,unit,as_of,source_id
+C001,campus,IN_VZG_01,area_ha,80.94,ha (200 acres),,S02
+C002,campus,IN_VZG_01,investment_text,USD 15 bn (whole hub; 2026-2030),USD,2026-04-27,S01
+C003,campus,IN_VZG_01,program_it_mw,1000,MW,,S02
+C004,campus,IN_VZG_02,area_ha,48.56,ha (120 acres),,S02
+C005,campus,IN_VZG_03,it_mw_total,500,MW,,S07
+C006,campus,IN_VZG_03,investment_text,INR 15266 crore,INR,,S07
+C007,campus,IN_VZG_03,investment_text,INR 16000 crore,INR,2025-10-11,S09
+C008,campus,IN_VZG_04,it_mw_total,200,MW,2023,S10
+C009,campus,IN_VZG_04,area_ha,52.61,ha (130 acres),2023,S10
+C010,campus,IN_VZG_05,area_ha,80.94,ha (200 acres),,S12
+C011,phase,IN_VZG_05_P1,it_mw,100,MW,,S13
+C012,campus,IN_VZG_05,program_it_mw,1000,MW,2025-10-11,S09
+C013,campus,IN_NMB_01,it_mw_total,250,MW (planned),2026-08-28,S14
+C014,campus,IN_NMB_01,it_mw_total,1000,MW (campus scalable to),,S15
+C015,phase,IN_NMB_01_P1,it_mw,95,MW (commissioned Q2 2026),2026-08-28,S14
+C016,campus,IN_HYD_01,area_ha,81.75,ha (202 acres),2026-07,S20
+C017,campus,IN_HYD_01,investment_text,INR 60000 crore over ~10 years (incl. Chandanvelly 98 acres),INR,2026-07,S20
+C018,campus,IN_HYD_02,area_ha,8.90,ha (22 acres),2022,S21
+C019,campus,IN_HYD_02,land_cost,INR ~40 crore,INR,2022,S21
+C020,campus,NL_MDM_01,energy_use_2025,1.17,TWh,2025,S24
+C021,campus,NL_AMS_01,grid_mw,80,MW (connection capacity),2026-07-07,S25
+C022,campus,NL_AMS_01,annual_consumption,779,GWh/yr,2026-07-07,S25
+C023,campus,NL_EMS_01,investment_note,USD 643 million (Google Groningen; phase unclear),USD,2025-07-11,S32
+C024,campus,DE_HES_01,investment_text,EUR 1.1 bn,EUR,,S26
+C025,campus,DE_HES_02,area_ha,20,ha,2023,S27
+C026,campus,DE_HES_03,grid_mw,60,MW (committed power),,S28

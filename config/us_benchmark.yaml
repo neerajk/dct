@@ -1,0 +1,144 @@
+# DCT-US benchmark v0 - hubs, labels, Clay v1.5 and model settings.
+# Complements config/dct.yaml (which holds the shared enums, OSM mirrors, S2 STAC endpoint).
+# USER INPUT markers = values you may want to change.
+
+paths:
+  seed_dir: "data/seed_us"          # auto-generated OSM rows (ODbL), kept apart from data/seed
+  raw_dir: "data/raw/us"
+  proc_dir: "data/processed/us"     # anchors, monthly labels, embeddings (parquet)
+  out_dir: "outputs/us"
+
+# --- hubs (bbox = west, south, east, north, EPSG:4326; approximate, adjust after first run) ---
+hubs:
+  us_nova:     {name: "Northern Virginia", state: "VA", bbox: [-77.75, 38.65, -77.25, 39.15]}
+  us_phoenix:  {name: "Phoenix", state: "AZ",           bbox: [-112.60, 33.20, -111.60, 33.75]}
+  us_dfw:      {name: "Dallas-Fort Worth", state: "TX", bbox: [-97.60, 32.50, -96.50, 33.30]}
+  us_columbus: {name: "Columbus OH", state: "OH",       bbox: [-83.25, 39.80, -82.60, 40.20]}
+  us_atlanta:  {name: "Atlanta", state: "GA",           bbox: [-84.75, 33.50, -84.10, 34.00]}
+
+sites:
+  merge_distance_m: 150          # buildings closer than this (or inside one campus polygon) = one campus
+  min_footprint_m2: 2000         # below ~20 Sentinel-2 pixels: not trackable
+  data_source: "osm"
+  licence: "ODbL"
+  source_tier: "3"
+
+# --- stages (coarse, valid for every sensor) ---
+stages:
+  names: {0: greenfield, 1: cleared_earthworks, 2: structure_rising, 3: enclosed, 4: operational}
+  n: 5
+
+# --- Epoch AI import (CC-BY) ---
+epoch:
+  data_url: "https://epoch.ai/data/data_centers/data_centers.zip"
+  site_match_radius_m: 10000      # Epoch counts buildings < ~10 km apart as one site
+  max_campuses_per_site: 3        # nearest campuses only; every match is listed in epoch_matches.csv for review
+  # Epoch ships NO coordinates (data_centers.csv has Name, Country, Address ...), so site positions are
+  # geocoded from the Address with Nominatim (cached) unless you supply them in coords_override.
+  country_filter: "United States"
+  geocode_user_agent: "dct-research/0.1"
+  geocode_cache: "data/raw/us/epoch/geocodes.csv"
+  coords_override: "data/seed_us/epoch_site_coords.csv"   # optional CSV: site,lat,lon (wins over geocoding)
+  columns:                        # null = auto-detect; set a name if auto-detect picks the wrong column
+    site_name: null               # data_centers.csv "Name"
+    country: null
+    address: null
+    timeline_site: "Data center"  # data_center_timelines.csv column holding the site name
+    date: "Date"
+    status: "Construction status"
+    buildings_operational: "Buildings operational"
+  date_uncertainty_months: 6      # Epoch: 80% of dates within 6 months
+  # Free-text "Construction status" -> stage. The HIGHEST stage whose keyword appears wins.
+  # Texts matching nothing are written to outputs/us/epoch_unmapped.csv for manual review.
+  keywords:
+    4: ["operational", "operating", "energized", "energised", "online", "fully operational", "first power", "in service"]
+    3: ["roof", "enclosed", "shell complete", "cladding", "building complete", "buildings complete"]
+    2: ["foundation", "steel", "structure", "framing", "under construction", "construction underway", "construction ongoing"]
+    1: ["land clearing", "clearing", "site preparation", "earthwork", "grading", "ground broken", "groundbreaking"]
+  # Campus stage = the most advanced building. 'Buildings operational' >= this -> stage 4; == 0 caps the stage at 3.
+  operational_if_buildings_operational_ge: 1
+
+# --- NAIP chips ---
+naip:
+  pc_stac: "https://planetarycomputer.microsoft.com/api/stac/v1"
+  pc_collection: "naip"
+  pc_years: [2010, 2023]          # what the Planetary Computer collection holds (checked 2026-10-20)
+  usda_mosaic_share: "https://nrcs.app.box.com/v/naip"   # 2024-2026 county mosaics: manual download
+  usda_local_dir: "data/raw/us/naip_usda"                 # put downloaded 2024-26 county files here
+  min_year: 2016                  # earlier flights are skipped (Sentinel-2 L2A series starts 2017)
+  min_valid_fraction: 0.5        # chips with fewer non-black pixels are dropped (edge of a tile or county file)
+  max_chips_side: 2               # campus = 1x1 or 2x2 chips of chip_px at target_gsd_m (256 m or 512 m wide)
+  chip_px: 256
+  target_gsd_m: 1.0               # Clay v1.5 was trained on NAIP at 1.0 m
+  margin_m: 100                   # extra margin around the campus bbox
+  bands: [red, green, blue, nir]  # order expected by Clay's naip metadata
+
+# --- Sentinel-2 chips for Clay (10 bands in Clay's order) ---
+s2_clay:
+  platform: "sentinel-2-l2a"
+  bands: [blue, green, red, rededge1, rededge2, rededge3, nir, nir08, swir16, swir22]
+  earth_search_assets: [blue, green, red, rededge1, rededge2, rededge3, nir, nir08, swir16, swir22, scl]
+  chip_px: 256                    # 2.56 km at 10 m
+  max_bad_fraction: 0.30          # whole-chip SCL bad fraction (cloud, shadow, cirrus, no-data) above which a month is a gap
+  max_bad_fraction_footprint: 0.10   # same, but only over the campus footprint + ring (what the model actually uses)
+  # No BOA offset correction: reading live Earth Search pixels showed that items flagged
+  # earthsearch:boa_offset_applied = false (baseline >= 04.00) are already offset-free, like the true ones.
+  # The flag and baseline are still stored per month for audit.
+
+# --- OPERA RTC-S1 (baseline features) ---
+opera:
+  short_name: "OPERA_L2_RTC-S1_V1"
+  bands: [VV, VH]
+  gsd_m: 30
+  chip_px: 86                    # 86 px x 30 m = 2.58 km around the campus
+  count_per_search: -1            # earthaccess: -1 = all granules in the window
+
+# --- Clay v1.5 via TerraTorch ---
+clay:
+  checkpoint: "models/clay/clay-v1.5.ckpt"
+  metadata: "config/clay/metadata.yaml"
+  # Encoder shape. dim/depth/heads/patch are from the Clay spec; dim_head and mlp_ratio are
+  # the claymodel large values and are NOT in the spec page. The loader raises if any encoder key
+  # is missing or mis-shaped, so a wrong value here fails loudly at load time.
+  encoder: {dim: 1024, depth: 24, heads: 16, dim_head: 64, mlp_ratio: 4.0, patch_size: 8}
+  weights_prefix: "model.encoder."
+  ring_m: 250                     # surrounding ring (metres) pooled separately from the inside-footprint patches
+  device: null                    # null = auto (MPS, then CUDA, then CPU); or "cpu" / "mps" / "cuda"
+  batch_size: 16
+  embed_dtype: "float16"          # stored dtype for parquet embeddings
+
+# --- NAIP teacher (auto-labeller) ---
+autolabel:
+  seed_labels_target: 200         # campus-years hand-labelled in the first round
+  min_labels_to_train: 40         # below this, only a labelling queue is written
+  ensemble: 5                     # heads averaged for the confidence estimate
+  active_rounds: 4
+  per_round_new_labels: 50
+  review_confidence_below: 0.70   # lower confidence goes to the review queue
+  head: {hidden: 256, dropout: 0.2, lr: 1.0e-3, epochs: 60, weight_decay: 1.0e-4}
+  seed: 42
+
+# --- anchors -> monthly labels ---
+labels:
+  source_reliability: {manual: 1.0, naip_auto: 0.8, epoch: 0.5}   # manual > NAIP-auto > Epoch
+  naip_date_uncertainty_months: 0
+  naip_approx_date_uncertainty_months: 4   # USDA mosaics: date pinned to July of the year (flagged date_approx)
+  hmm:
+    stay_prob: 0.97               # per-month probability of staying in the same stage
+    advance_prob: 0.03            # per-month probability of moving forward one stage (never backward)
+    skip_prob: 0.002              # per-month probability of skipping a stage
+  weight_floor: 0.2               # lowest training weight (months nearest a transition)
+
+# --- models A/B/C ---
+models:
+  seed: 42
+  baseline_lgbm: {n_estimators: 400, learning_rate: 0.05, num_leaves: 31, min_child_samples: 20}
+  clay_head: {hidden: 256, gru_hidden: 128, dropout: 0.2, lr: 1.0e-3, epochs: 80, weight_decay: 1.0e-4}
+  distill:
+    pair_window_days: 30          # NAIP date matched to the nearest clear S2 month within this window
+    temperature: 2.0
+    alpha_teacher: 0.5            # weight of the KL(teacher) term vs the label loss
+    feature_align: false          # optional MLP S2->NAIP embedding alignment (cosine)
+  eval:
+    holdout: "leave_one_hub_out"
+    temporal_holdout_months: 12

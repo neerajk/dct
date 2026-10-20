@@ -1,0 +1,24 @@
+name: dct
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - openpyxl
+  - pyyaml
+  - pydantic>=2
+  - requests
+  - pillow
+  - shapely>=2
+  - pyproj
+  - geopandas
+  - pyogrio
+  - rasterio
+  - pystac-client
+  - planetary-computer
+  - simplekml
+  - pip
+  - pip:
+      - hyp3_sdk
+      - asf_search
