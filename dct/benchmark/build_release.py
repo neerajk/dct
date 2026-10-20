@@ -17,7 +17,6 @@ from __future__ import annotations
 import shutil
 from datetime import date
 
-import geopandas as gpd
 import pandas as pd
 
 from dct.benchmark.dataset import _concat_csv
@@ -85,12 +84,12 @@ def main() -> None:
         pd.concat(scenes, ignore_index=True).to_csv(dest / "scenes.csv", index=False)
 
     import json
-    (dest / "splits.json").write_text(json.dumps(build_splits(cfg), indent=1))
+    (dest / "splits.json").write_text(json.dumps(build_splits(cfg), indent=1), encoding="utf-8")
     scores = out_dir(cfg, "benchmark_scores.csv")
     if scores.exists():
         shutil.copy(scores, dest / "baseline_scores.csv")
     shutil.copy(REPO_ROOT / "docs" / "DATASHEET.md", dest / "DATASHEET.md")
-    (dest / "LICENCES.md").write_text(LICENCES)
+    (dest / "LICENCES.md").write_text(LICENCES, encoding="utf-8")
     print(f"release written to {dest}")
     for p in sorted(dest.iterdir()):
         print(f"  {p.name}  ({p.stat().st_size / 1e6:.2f} MB)")

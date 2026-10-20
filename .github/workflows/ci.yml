@@ -1,0 +1,13 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install ruff
+      # syntax errors, undefined names, bad imports: cheap checks that need no weights, data or network
+      - run: ruff check --select E9,F63,F7,F82,F401 dct scripts
+      - run: python -m compileall -q dct scripts

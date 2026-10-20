@@ -25,7 +25,7 @@ MANIFEST_COLUMNS = ["campus_id", "sensor", "date", "item_id", "path", "status", 
 
 
 def load_config(path: Path | str = DEFAULT_CONFIG) -> dict[str, Any]:
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 

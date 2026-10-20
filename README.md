@@ -47,7 +47,26 @@ Auth: HyP3 needs a free NASA Earthdata login stored in `~/.netrc`
 Docs: `docs/US_benchmark_methodology.md` (data flow and method), `docs/DCT_references.docx` (95 references),
 `docs/DATASHEET.md`. Config: `config/us_benchmark.yaml`. **None of this code has been run yet** (written and reviewed by reading only).
 
-### Environment (ML)
+### Windows + NVIDIA GPU (current target: RTX 5050)
+The code runs on whichever device is available. Order of choice: `--device` flag, `DCT_DEVICE` env var, `clay.device` in
+`config/us_benchmark.yaml`, then auto (cuda > mps > cpu). A device you ask for but do not have is an error, never a silent CPU run.
+Per-device precision and batch size live in `clay.profiles` (cuda: bfloat16, batch 32). Only the Clay encoder uses the GPU;
+the small B/C heads run on CPU (`models.head_device`).
+```powershell
+# one-time (PowerShell, repo root; needs micromamba, git and a current NVIDIA driver)
+powershell -ExecutionPolicy Bypass -File scripts/setup_windows.ps1   # env + CUDA torch + TerraTorch + weights + GPU check
+micromamba activate dct-ml
+
+python -m dct.env_check --clay --probe-batch    # GPU check; Clay fp32 vs bf16 parity; best batch size
+python -m dct.us.s2_extract --hub us_nova --limit 5 --device cuda
+python -m streamlit run dct/labels/labeler_app.py
+```
+RTX 50 series (Blackwell) needs a torch build for CUDA 12.8+ (`cu128`); the setup script installs it from the PyTorch
+index and re-checks that `torch.version.cuda` is not `None` after TerraTorch is installed. Earthdata login for OPERA:
+set `EARTHDATA_USERNAME` / `EARTHDATA_PASSWORD`, or create `%USERPROFILE%\_netrc`. Update later with `scripts/sync.ps1`.
+Large folders (`models/`, `data/raw/`, embeddings) are not in git; copy between machines with robocopy/rsync.
+
+### Environment (ML, Mac)
 ```bash
 micromamba create -f environment-ml.yml && micromamba activate dct-ml   # terratorch >= 1.2.12
 export KMP_DUPLICATE_LIB_OK=TRUE                                         # OpenMP clash on this Mac
@@ -70,7 +89,7 @@ python -m dct.us.naip_chips
 # 4 NAIP teacher: embed, label ~200 campus-years by hand, train, repeat (active learning)
 python -m dct.clay.naip_embed
 python -m dct.clay.autolabel_naip                                  # first run writes label_queue.csv
-PYTHONPATH=. streamlit run dct/labels/labeler_app.py               # label, save
+python -m streamlit run dct/labels/labeler_app.py                  # label, save (Mac/Linux alt: PYTHONPATH=. streamlit run ...)
 python -m dct.clay.autolabel_naip                                  # trains, writes anchors_naip.csv + next queue
 
 # 5 monthly labels (stages only go forward)
@@ -78,7 +97,7 @@ python -m dct.labels.build_monthly
 
 # 6 Sentinel-2 features + Clay embeddings (use --no-clay for features only), OPERA radar
 python -m dct.us.s2_extract
-python -m dct.us.opera_rtc                                          # needs ~/.netrc Earthdata login
+python -m dct.us.opera_rtc                                          # needs an Earthdata login (env vars or netrc)
 
 # 7 models A / B / C, leave-one-hub-out + temporal hold-out, and the release bundle
 python -m dct.benchmark.evaluate

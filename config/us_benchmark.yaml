@@ -81,6 +81,8 @@ s2_clay:
   chip_px: 256                    # 2.56 km at 10 m
   max_bad_fraction: 0.30          # whole-chip SCL bad fraction (cloud, shadow, cirrus, no-data) above which a month is a gap
   max_bad_fraction_footprint: 0.10   # same, but only over the campus footprint + ring (what the model actually uses)
+  io_workers_select: 12           # threads reading SCL while choosing each month's scene (network-bound)
+  io_workers_load: 8              # threads reading the 10 bands of the chosen scenes
   # No BOA offset correction: reading live Earth Search pixels showed that items flagged
   # earthsearch:boa_offset_applied = false (baseline >= 04.00) are already offset-free, like the true ones.
   # The flag and baseline are still stored per month for audit.
@@ -103,8 +105,13 @@ clay:
   encoder: {dim: 1024, depth: 24, heads: 16, dim_head: 64, mlp_ratio: 4.0, patch_size: 8}
   weights_prefix: "model.encoder."
   ring_m: 250                     # surrounding ring (metres) pooled separately from the inside-footprint patches
-  device: null                    # null = auto (MPS, then CUDA, then CPU); or "cpu" / "mps" / "cuda"
-  batch_size: 16
+  # Device: null = auto (CUDA, then MPS, then CPU). Override per run with --device or the DCT_DEVICE env var.
+  device: null
+  batch_size: 16                  # fallback when the device has no profile below
+  profiles:                       # per-device-type settings (Windows + RTX 5050 = cuda; the mps entry is for a Mac)
+    cuda: {dtype: bfloat16, batch_size: 32}   # check with: python -m dct.env_check --clay --probe-batch
+    mps: {dtype: float32, batch_size: 16}
+    cpu: {dtype: float32, batch_size: 4}
   embed_dtype: "float16"          # stored dtype for parquet embeddings
 
 # --- NAIP teacher (auto-labeller) ---
@@ -132,6 +139,7 @@ labels:
 # --- models A/B/C ---
 models:
   seed: 42
+  head_device: "cpu"              # the B/C heads are tiny; the GPU is only needed for the Clay encoder
   baseline_lgbm: {n_estimators: 400, learning_rate: 0.05, num_leaves: 31, min_child_samples: 20}
   clay_head: {hidden: 256, gru_hidden: 128, dropout: 0.2, lr: 1.0e-3, epochs: 80, weight_decay: 1.0e-4}
   distill:

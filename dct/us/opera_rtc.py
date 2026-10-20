@@ -1,6 +1,6 @@
 """US benchmark step 7: NASA OPERA RTC-S1 radar backscatter per campus-month (baseline features).
 
-Run (ML env, needs a free Earthdata login in ~/.netrc):  python -m dct.us.opera_rtc [--hub us_nova] [--limit 20]
+Run (ML env, needs a free Earthdata login: EARTHDATA_USERNAME / EARTHDATA_PASSWORD env vars, or ~/.netrc (%USERPROFILE%\\_netrc on Windows)):  python -m dct.us.opera_rtc [--hub us_nova] [--limit 20]
 OPERA_L2_RTC-S1_V1 = terrain-corrected gamma0, 30 m, one burst per file (VV/VH COGs), near-global, 2016-04-14 on.
 It replaces HyP3 RTC for backscatter (no credits, nothing to order).
 
@@ -149,7 +149,7 @@ def main() -> None:
     cfg = load_us_config()
     footprints = require_footprints(cfg)
     import earthaccess
-    earthaccess.login(strategy="netrc")
+    earthaccess.login(strategy="all")     # env vars, then netrc (_netrc on Windows), then a prompt
     campuses = read_seed(cfg, "campuses")
     if args.hub:
         campuses = campuses[campuses["cluster"] == args.hub]

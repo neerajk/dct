@@ -34,6 +34,7 @@ from rasterio.enums import Resampling
 
 from dct.common import load_us_config, month_starts, proc_dir, read_seed, require_footprints
 from dct.features.handcrafted import pixel_masks, s2_stats
+from dct.runtime import add_device_arg, apply_device_arg
 from dct.us.naip_chips import read_chip
 
 PLATFORM = "sentinel-2-l2a"
@@ -129,7 +130,7 @@ def process_campus(cfg: dict, client: Client, enc, rec: dict, footprint, refresh
         jobs.append((k, cands[:cfg["sentinel2"]["candidates_per_month"]], lon, lat, size_m, size_px,
                      cfg["sentinel2"]["scl_bad_classes"], footprint, ccfg["ring_m"],
                      scfg["max_bad_fraction"], scfg["max_bad_fraction_footprint"]))
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=scfg.get("io_workers_select", 8)) as pool:
         chosen = dict(pool.map(select_month, jobs))
 
     todo = [(k, v[2], v[0], v[1]) for k, v in chosen.items()
@@ -145,7 +146,7 @@ def process_campus(cfg: dict, client: Client, enc, rec: dict, footprint, refresh
         scl, _, _ = _scl(item, lon, lat, size_m, size_px)
         return k, item, chip_bad, foot_bad, np.stack(arrs).astype("float32"), tr, cr, np.isin(scl, cfg["sentinel2"]["scl_bad_classes"])
 
-    with ThreadPoolExecutor(max_workers=6) as pool:
+    with ThreadPoolExecutor(max_workers=scfg.get("io_workers_load", 6)) as pool:
         loaded = list(pool.map(load, todo))
 
     rows = {}
@@ -172,7 +173,7 @@ def process_campus(cfg: dict, client: Client, enc, rec: dict, footprint, refresh
         from dct.clay.store import save_emb
         if chips:
             from dct.clay.pooling import embed_chips
-            emb = embed_chips(enc, np.stack(chips), PLATFORM, times, latlons, np.stack(inside_p), np.stack(ring_p), ccfg["batch_size"])
+            emb = embed_chips(enc, np.stack(chips), PLATFORM, times, latlons, np.stack(inside_p), np.stack(ring_p), enc.batch_size)
             index = pd.DataFrame({"campus_id": cid, "month": emb_keys})
         else:                                           # write an empty store so the resume check passes
             emb = {k: np.zeros((0, enc.dim), "float32") for k in ("cls", "inside", "ring")}
@@ -191,7 +192,9 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--no-clay", action="store_true", help="features only (no torch needed)")
     ap.add_argument("--refresh", action="store_true", help="recompute campuses that already have outputs (new month, new settings)")
+    add_device_arg(ap)
     args = ap.parse_args()
+    apply_device_arg(args)
     cfg = load_us_config()
     footprints = require_footprints(cfg)
     campuses = read_seed(cfg, "campuses")
@@ -203,7 +206,7 @@ def main() -> None:
     if not args.no_clay:
         from dct.clay.encoder import ClayEncoder
         enc = ClayEncoder(cfg)
-        print(f"Clay v1.5 on {enc.dev}")
+        print(f"Clay v1.5 on {enc.dev} (dtype {enc.amp_dtype or 'float32'}, batch {enc.batch_size})")
     client = Client.open(cfg["sentinel2"]["stac_endpoint"])
     for rec in campuses.to_dict("records"):
         match = footprints[footprints["campus_id"] == rec["campus_id"]]

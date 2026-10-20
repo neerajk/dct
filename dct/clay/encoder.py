@@ -18,6 +18,7 @@ Output tokens: (B, 1 + (H/8)*(W/8), 1024): CLS first, then the patch grid (32 x 
 """
 from __future__ import annotations
 
+import contextlib
 import math
 import os
 from datetime import date, datetime
@@ -33,17 +34,9 @@ from einops import repeat
 from torch import nn
 
 from dct.common import REPO_ROOT
+from dct.runtime import device_profile, pick_device   # noqa: F401  (pick_device re-exported)
 
 
-def pick_device(prefer: str | None = None) -> torch.device:
-    """MPS, then CUDA, then CPU (never hard-code .cuda())."""
-    if prefer:
-        return torch.device(prefer)
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    return torch.device("cpu")
 
 
 def encode_time(d: date | datetime, hour: int = 12) -> list[float]:
@@ -67,11 +60,15 @@ class ClayEncoder(nn.Module):
         self.encoder = Encoder(mask_ratio=0.0, patch_size=e["patch_size"], shuffle=False, dim=e["dim"],
                                depth=e["depth"], heads=e["heads"], dim_head=e["dim_head"], mlp_ratio=e["mlp_ratio"])
         self._load_weights(REPO_ROOT / ccfg["checkpoint"], ccfg["weights_prefix"])
-        with open(REPO_ROOT / ccfg["metadata"]) as f:
+        with open(REPO_ROOT / ccfg["metadata"], encoding="utf-8") as f:
             self.meta = yaml.safe_load(f)
         self.dim = e["dim"]
         self.patch_size = e["patch_size"]
         self.dev = pick_device(device or ccfg.get("device"))
+        prof = device_profile(ccfg, self.dev)
+        self.batch_size = int(prof["batch_size"])
+        # reduced precision only on the accelerator profile; None = plain float32 (set to None to force fp32)
+        self.amp_dtype = None if prof["dtype"] == "float32" else getattr(torch, prof["dtype"])
         self.to(self.dev).eval()
 
     def _load_weights(self, path: Path, prefix: str) -> None:
@@ -119,8 +116,11 @@ class ClayEncoder(nn.Module):
         time = torch.tensor(times, dtype=torch.float32, device=self.dev)
         latlon = torch.tensor(latlons, dtype=torch.float32, device=self.dev)
         B = x.shape[0]
-        patches, _ = self.encoder.to_patch_embed(x, waves)
-        patches = self.encoder.add_encodings(patches, time, latlon, gsd)
-        cls = repeat(self.encoder.cls_token, "1 1 D -> B 1 D", B=B)
-        out = self.encoder.transformer(torch.cat((cls, patches), dim=1))
+        amp = (torch.autocast(device_type=self.dev.type, dtype=self.amp_dtype) if self.amp_dtype is not None
+               else contextlib.nullcontext())
+        with amp:
+            patches, _ = self.encoder.to_patch_embed(x, waves)
+            patches = self.encoder.add_encodings(patches, time, latlon, gsd)
+            cls = repeat(self.encoder.cls_token, "1 1 D -> B 1 D", B=B)
+            out = self.encoder.transformer(torch.cat((cls, patches), dim=1))
         return out.float().cpu()

@@ -100,16 +100,15 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="+", default=["A", "B", "C"], choices=["A", "B", "C"])
     ap.add_argument("--folds", nargs="+", default=["hub", "temporal"], choices=["hub", "temporal"])
+    ap.add_argument("--head-device", choices=["cpu", "cuda", "mps"], default=None,
+                    help="device for the small B/C heads (default models.head_device, i.e. cpu)")
     args = ap.parse_args()
     cfg = load_us_config()
     need_clay = any(m in args.models for m in ("B", "C"))
     b = assemble(cfg, need_clay=need_clay, need_teacher="C" in args.models)
     N, T = len(b.campuses), len(b.months)
     print(f"{N} labelled campuses x {T} months; {int(b.M.sum())} campus-months with an S2 image")
-    device = "cpu"
-    if need_clay:
-        from dct.clay.encoder import pick_device
-        device = str(pick_device(cfg["us"]["clay"].get("device")))
+    device = args.head_device or cfg["us"]["models"].get("head_device", "cpu")   # the heads are tiny: CPU is fine
     hmm = cfg["us"]["labels"]["hmm"]
     hold = cfg["us"]["models"]["eval"]["temporal_holdout_months"]
 

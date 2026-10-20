@@ -16,12 +16,12 @@ import json
 import numpy as np
 import pandas as pd
 import rasterio
-from rasterio.windows import Window
 
 from dct.clay.encoder import ClayEncoder, encode_latlon, encode_time
 from dct.clay.pooling import embed_chips, patch_masks
 from dct.clay.store import save_emb
 from dct.common import load_us_config, proc_dir, raw_dir, read_seed, require_footprints
+from dct.runtime import add_device_arg, apply_device_arg
 
 PLATFORM = "naip"
 
@@ -62,7 +62,7 @@ def embed_campus(cfg: dict, enc: ClayEncoder, campus_id: str, footprint, hub: st
             arr.append(chip.astype("float32")); ins.append(i); rng.append(r); n_in.append(int(i.sum()))
         k = len(arr)
         emb = embed_chips(enc, np.stack(arr), PLATFORM, [encode_time(d)] * k, [encode_latlon(lat, lon)] * k,
-                          np.stack(ins), np.stack(rng), ccfg["batch_size"])
+                          np.stack(ins), np.stack(rng), enc.batch_size)
         w = np.array(n_in, dtype="float32")
         w = w / w.sum()
         cls_l.append((emb["cls"] * w[:, None]).sum(0)); in_l.append((emb["inside"] * w[:, None]).sum(0))
@@ -80,7 +80,9 @@ def main() -> None:
     ap.add_argument("--hub", default=None)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--refresh", action="store_true", help="re-embed campuses that already have a store")
+    add_device_arg(ap)
     args = ap.parse_args()
+    apply_device_arg(args)
     cfg = load_us_config()
     footprints = require_footprints(cfg)
     campuses = read_seed(cfg, "campuses")
@@ -89,7 +91,7 @@ def main() -> None:
     if args.limit:
         campuses = campuses.head(args.limit)
     enc = ClayEncoder(cfg)
-    print(f"Clay v1.5 on {enc.dev}; {len(campuses)} campuses")
+    print(f"Clay v1.5 on {enc.dev} (dtype {enc.amp_dtype or 'float32'}, batch {enc.batch_size}); {len(campuses)} campuses")
     for rec in campuses.to_dict("records"):
         cid = rec["campus_id"]
         match = footprints[footprints["campus_id"] == cid]

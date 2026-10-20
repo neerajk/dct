@@ -1,0 +1,36 @@
+# ML environment for Windows + NVIDIA (RTX 50 series, Blackwell). Same package set as environment-ml.yml, but
+# torch and TerraTorch are installed by scripts/setup_windows.ps1 (torch must come from the CUDA 12.8 wheel index,
+# otherwise pip picks the CPU-only Windows wheel from PyPI).
+#   powershell -ExecutionPolicy Bypass -File scripts/setup_windows.ps1
+name: dct-ml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - pyarrow
+  - openpyxl
+  - simplekml
+  - pyyaml
+  - pydantic>=2
+  - requests
+  - pillow
+  - shapely>=2
+  - pyproj
+  - geopandas
+  - pyogrio
+  - rasterio>=1.4
+  - pystac-client
+  - planetary-computer
+  - earthaccess
+  - scikit-learn
+  - lightgbm
+  - streamlit
+  - matplotlib
+  - tqdm
+  - ruff
+  - pip
+  - pip:
+      - python-box
+      - einops
